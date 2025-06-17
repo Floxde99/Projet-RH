@@ -18,6 +18,9 @@ CREATE TABLE `BusinessOwner` (
 CREATE TABLE `Computer` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
     `macAddress` VARCHAR(191) NOT NULL,
+    `adress` VARCHAR(191) NOT NULL,
+    `latitude` DOUBLE NULL,
+    `longitude` DOUBLE NULL,
     `employeId` INTEGER NULL,
 
     UNIQUE INDEX `Computer_macAddress_key`(`macAddress`),

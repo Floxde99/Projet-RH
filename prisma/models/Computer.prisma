@@ -1,8 +1,9 @@
 model Computer {
     id          Int      @id @default(autoincrement())
     macAddress  String   @unique
-    employeId   Int?     @unique
-    employe     Employe? @relation(fields: [employeId], references: [id])
+    adress     String
     latitude    Float?
     longitude   Float?
+    employeId   Int?     @unique
+    employe     Employe? @relation(fields: [employeId], references: [id])
 }

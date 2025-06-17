@@ -21,22 +21,34 @@ exports.getAllComputers = async (req, res) => {
 // Créer un nouvel ordinateur
 exports.createComputer = async (req, res) => {
     try {
-        await prisma.computer.create({
+        // Afficher les données reçues pour débogage
+        console.log("Données reçues:", req.body);
+        
+        // Convertir les coordonnées en nombres ou null
+        const latitude = req.body.latitude ? parseFloat(req.body.latitude) : null;
+        const longitude = req.body.longitude ? parseFloat(req.body.longitude) : null;
+        
+        // Créer l'ordinateur avec les données validées - noter l'utilisation de "adress" au lieu de "address"
+        const result = await prisma.computer.create({
             data: {
-                macAddress: req.body.macAddress
+                macAddress: req.body.macAddress,
+                adress: req.body.address || "", // Correction ici: "adress" au lieu de "address"
+                latitude: latitude,
+                longitude: longitude
             }
         });
         
-        return res.redirect("/?success=Ordinateur ajouté avec succès");
+        console.log("Ordinateur créé avec succès:", result);
+        return res.redirect("/?tab=computers&success=Ordinateur ajouté avec succès");
     } catch (error) {
-        console.error("Erreur lors de la création de l'ordinateur:", error);
+        console.error("Erreur détaillée lors de la création de l'ordinateur:", error);
         
         // Gestion des erreurs de contrainte unique
         if (error.code === "P2002" && error.meta?.target?.includes("macAddress")) {
-            return res.redirect("/?error=Cette adresse MAC est déjà utilisée");
+            return res.redirect("/?tab=computers&error=Cette adresse MAC est déjà utilisée");
         }
         
-        return res.redirect("/?error=Erreur lors de la création de l'ordinateur");
+        return res.redirect(`/?tab=computers&error=Erreur lors de la création de l'ordinateur: ${error.message}`);
     }
 };
 
@@ -50,20 +62,23 @@ exports.updateComputer = async (req, res) => {
                 id: computerId
             },
             data: {
-                macAddress: req.body.macAddress
+                macAddress: req.body.macAddress,
+                adress: req.body.address || "", // Correction ici: "adress" au lieu de "address"
+                latitude: req.body.latitude ? parseFloat(req.body.latitude) : null,
+                longitude: req.body.longitude ? parseFloat(req.body.longitude) : null
             }
         });
         
-        return res.redirect("/?success=Ordinateur mis à jour avec succès");
+        return res.redirect("/?tab=computers&success=Ordinateur mis à jour avec succès"); // Ajout de "tab=computers"
     } catch (error) {
         console.error("Erreur lors de la mise à jour de l'ordinateur:", error);
         
         // Gestion des erreurs de contrainte unique
         if (error.code === "P2002" && error.meta?.target?.includes("macAddress")) {
-            return res.redirect("/?error=Cette adresse MAC est déjà utilisée");
+            return res.redirect("/?tab=computers&error=Cette adresse MAC est déjà utilisée");
         }
         
-        return res.redirect("/?error=Erreur lors de la mise à jour de l'ordinateur");
+        return res.redirect("/?tab=computers&error=Erreur lors de la mise à jour de l'ordinateur");
     }
 };
 
