@@ -1,0 +1,106 @@
+{% extends "../layouts/base.twig" %}
+
+{% block main %}
+<div class="flex flex-col h-full">
+  <div class="flex justify-between items-center mb-4">
+    <h1 class="text-2xl font-bold">Assistant RH</h1>
+    <a href="/chatbot/clear" class="btn btn-sm btn-ghost">Nouvelle conversation</a>
+  </div>
+
+  <div class="bg-base-200 rounded-box p-4 flex-1 overflow-y-auto mb-4" id="chat-messages" style="min-height: 60vh; max-height: 60vh;">
+    {% if messages|length > 0 %}
+      {% for message in messages %}
+        <div class="chat {% if message.role == 'user' %}chat-end{% else %}chat-start{% endif %} mb-4">
+          <div class="chat-bubble {% if message.role == 'user' %}chat-bubble-primary{% else %}chat-bubble-secondary{% endif %}">
+            {{ message.content|nl2br }}
+          </div>
+        </div>
+      {% endfor %}
+    {% else %}
+      <div class="text-center text-base-content opacity-70 my-8">
+        <p>👋 Bonjour ! Je suis votre assistant RH virtuel.</p>
+        <p class="mt-2">Comment puis-je vous aider aujourd'hui ?</p>
+      </div>
+    {% endif %}
+  </div>
+
+  <form id="chat-form" class="flex gap-2">
+    <input type="text" id="user-message" class="input input-bordered flex-1" placeholder="Posez votre question..." required>
+    <button type="submit" class="btn btn-primary">
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="22" y1="2" x2="11" y2="13"></line>
+        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+      </svg>
+    </button>
+  </form>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const chatForm = document.getElementById('chat-form');
+    const userMessageInput = document.getElementById('user-message');
+    const chatMessages = document.getElementById('chat-messages');
+    
+    // Faire défiler vers le bas pour voir les derniers messages
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+    
+    chatForm.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      
+      const userMessage = userMessageInput.value.trim();
+      if (!userMessage) return;
+      
+      // Désactiver le formulaire pendant l'envoi
+      const submitButton = chatForm.querySelector('button[type="submit"]');
+      submitButton.disabled = true;
+      userMessageInput.disabled = true;
+      
+      try {
+        // Envoyer le message au serveur
+        const response = await fetch('/chatbot/message', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ message: userMessage }),
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          // Effacer le champ de saisie
+          userMessageInput.value = '';
+          
+          // Mettre à jour l'affichage des messages
+          chatMessages.innerHTML = '';
+          
+          data.messages.forEach(message => {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `chat ${message.role === 'user' ? 'chat-end' : 'chat-start'} mb-4`;
+            
+            const bubbleDiv = document.createElement('div');
+            bubbleDiv.className = `chat-bubble ${message.role === 'user' ? 'chat-bubble-primary' : 'chat-bubble-secondary'}`;
+            bubbleDiv.innerHTML = message.content.replace(/\n/g, '<br>');
+            
+            messageDiv.appendChild(bubbleDiv);
+            chatMessages.appendChild(messageDiv);
+          });
+          
+          // Faire défiler vers le bas
+          chatMessages.scrollTop = chatMessages.scrollHeight;
+        } else {
+          alert('Erreur: ' + data.error);
+        }
+      } catch (error) {
+        console.error('Erreur:', error);
+        alert('Une erreur est survenue lors de l\'envoi du message');
+      } finally {
+        // Réactiver le formulaire
+        submitButton.disabled = false;
+        userMessageInput.disabled = false;
+        userMessageInput.focus();
+      }
+    });
+  });
+</script>
+{% endblock %}

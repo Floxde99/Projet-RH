@@ -1,0 +1,39 @@
+{% extends "../layouts/base.twig" %}
+
+{% block main %}
+<div class="flex justify-center items-center h-full w-full p-4">
+  <fieldset class="fieldset bg-base-200 border-base-300 rounded-box w-full max-w-md border p-6 shadow">
+    <legend class="fieldset-legend text-xl">Inscription Entreprise</legend>
+    
+    <form method="POST" >
+      <label for="name" class="label mt-3">Nom du responsable</label>
+      <input type="text" name="name" id="name" class="input w-full {% if errors.name %}input-error{% endif %}" placeholder="Nom du responsable" value="{{ formData.name | default('') }}" autocomplete="name" required />
+      {% if errors.name %}<p class="text-error text-sm mt-1">{{ errors.name }}</p>{% endif %}
+      
+      <label for="companyName" class="label mt-3">Nom de l'entreprise</label>
+      <input type="text" name="companyName" id="companyName" class="input w-full {% if errors.companyName %}input-error{% endif %}" placeholder="Nom de l'entreprise" value="{{ formData.companyName | default('') }}" autocomplete="companyName" required />
+      {% if errors.companyName %}<p class="text-error text-sm mt-1">{{ errors.companyName }}</p>{% endif %}
+      
+      <label for="siret" class="label mt-3">Numéro SIRET</label>
+      <input type="text" name="siret" id="siret" class="input w-full {% if errors.siret %}input-error{% endif %}" placeholder="Numéro SIRET (14 chiffres)" value="{{ formData.siret | default('') }}" autocomplete="off" required pattern="\d{14}" title="Le SIRET doit contenir 14 chiffres" />
+      {% if errors.siret %}<p class="text-error text-sm mt-1">{{ errors.siret }}</p>{% endif %}
+      
+      <label for="email" class="label mt-3">Email professionnel</label>
+      <input type="email" name="email" id="email" class="input w-full {% if errors.email %}input-error{% endif %}" placeholder="Email" value="{{ formData.email | default('') }}" autocomplete="email" required />
+      {% if errors.email %}<p class="text-error text-sm mt-1">{{ errors.email }}</p>{% endif %}
+
+      <label for="password" class="label mt-3">Mot de passe</label>
+      <input type="password" name="password" id="password" class="input w-full {% if errors.password %}input-error{% endif %}" placeholder="Mot de passe" autocomplete="new-password" required />
+      {% if errors.password %}<p class="text-error text-sm mt-1">{{ errors.password }}</p>{% endif %}
+      
+      <label for="confirmPassword" class="label mt-3">Confirmation du mot de passe</label>
+      <input type="password" name="confirmPassword" id="confirmPassword" class="input w-full {% if errors.confirmPassword %}input-error{% endif %}" placeholder="Confirmez le mot de passe" autocomplete="new-password" required />
+      {% if errors.confirmPassword %}<p class="text-error text-sm mt-1">{{ errors.confirmPassword }}</p>{% endif %}
+      
+      {% if error.message %}<p class="text-error text-sm mt-3">{{ error.message }}</p>{% endif %}
+
+      <button type="submit" class="btn btn-neutral w-full mt-4">Créer mon compte entreprise</button>
+    </form>
+  </fieldset>
+</div>
+{% endblock %}

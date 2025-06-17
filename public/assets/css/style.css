@@ -1,0 +1,5 @@
+@import "tailWindcss";
+@source "../../../src/views/**/*.{html,js,twig}";
+@plugin "daisyui" {
+  themes: all;
+}
