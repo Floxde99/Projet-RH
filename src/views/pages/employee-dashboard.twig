@@ -1,0 +1,599 @@
+{% extends "../layouts/base.twig" %}
+
+{% block style %}
+<!-- Styles pour le calendrier et la page employé -->
+<link href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" rel="stylesheet" />
+<style>
+  #task-calendar {
+    height: 600px;
+    width: 100%;
+    background-color: white;
+    border-radius: 0.5rem;
+  }
+  
+  .task {
+    border-left: 4px solid;
+    padding-left: 0.5rem;
+    margin-bottom: 0.5rem;
+    transition: all 0.2s;
+  }
+  
+  .task:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  }
+  
+  .task.pending {
+    border-color: #f59e0b;
+  }
+  
+  .task.in-progress {
+    border-color: #3b82f6;
+  }
+  
+  .task.completed {
+    border-color: #10b981;
+  }
+  
+  .task.cancelled {
+    border-color: #ef4444;
+  }
+  
+  /* Styles pour les événements du calendrier */
+  .fc-event {
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  
+  .fc-event:hover {
+    transform: scale(1.02);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  }
+  
+  /* Styles pour les boutons de statut */
+  .status-btn {
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    cursor: pointer;
+  }
+  
+  /* Styles pour les statuts */
+  .fc-event.task-pending { background-color: #f59e0b !important; border-color: #d97706 !important; }
+  .fc-event.task-in-progress { background-color: #3b82f6 !important; border-color: #2563eb !important; }
+  .fc-event.task-completed { background-color: #10b981 !important; border-color: #059669 !important; }
+  .fc-event.task-cancelled { background-color: #ef4444 !important; border-color: #dc2626 !important; }
+  
+  /* Amélioration des en-têtes */
+  .fc-header-toolbar {
+    margin-bottom: 1.5em !important;
+  }
+  
+  /* Styles pour les boutons */
+  .fc-button {
+    background-color: #1d4ed8 !important;
+    border-color: #1d4ed8 !important;
+  }
+  
+  .fc-button-active {
+    background-color: #1e40af !important;
+    border-color: #1e40af !important;
+  }
+</style>
+{% endblock %}
+
+{% block main %}
+<div class="min-h-screen flex flex-col">
+  <!-- Header avec nom de l'employé -->
+  <div class="bg-base-200 p-4 rounded-box mb-6">
+    <h1 class="text-2xl font-bold">Bonjour, {{ employe.firstName }} {{ employe.lastname }}</h1>
+    <p class="text-sm opacity-70">{{ employe.mail }}</p>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs tabs-boxed mb-6">
+    <button class="tab tab-active" onclick="switchTab('dashboard')">Tableau de bord</button>
+    <button class="tab" onclick="switchTab('tasks')">Mes tâches</button>
+    <button class="tab" onclick="switchTab('computer')">Mon ordinateur</button>
+  </div>
+
+  <!-- Dashboard Section -->
+  <div id="dashboard-tab" class="flex-1">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <!-- Informations de l'employé -->
+      <div class="card bg-base-200 shadow-sm">
+        <div class="card-body">
+          <h2 class="card-title">Mes informations</h2>
+          <div class="overflow-x-auto">
+            <table class="table w-full">
+              <tbody>
+                <tr>
+                  <td class="font-bold">Nom</td>
+                  <td>{{ employe.lastname }}</td>
+                </tr>
+                <tr>
+                  <td class="font-bold">Prénom</td>
+                  <td>{{ employe.firstName }}</td>
+                </tr>
+                <tr>
+                  <td class="font-bold">Email</td>
+                  <td>{{ employe.mail }}</td>
+                </tr>
+                <tr>
+                  <td class="font-bold">Date de naissance</td>
+                  <td>{{ employe.birthDate|date("d/m/Y") }}</td>
+                </tr>
+                <tr>
+                  <td class="font-bold">Âge</td>
+                  <td>{{ employe.birthDate ? ((("now"|date("Y")) - (employe.birthDate|date("Y"))) ~ " ans") : "-" }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Informations de l'ordinateur -->
+      <div class="card bg-base-200 shadow-sm">
+        <div class="card-body">
+          <h2 class="card-title">Mon ordinateur</h2>
+          {% if employe.computer %}
+            <div class="overflow-x-auto">
+              <table class="table w-full">
+                <tbody>
+                  <tr>
+                    <td class="font-bold">Adresse MAC</td>
+                    <td>{{ employe.computer.macAddress }}</td>
+                  </tr>
+                  <tr>
+                    <td class="font-bold">Adresse physique</td>
+                    <td>{{ employe.computer.adress ? employe.computer.adress : "Non renseignée" }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          {% else %}
+            <div class="alert alert-warning">
+              <span>Aucun ordinateur n'est assigné à votre compte.</span>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    
+    <!-- Tâches à venir -->
+    <div class="card bg-base-200 shadow-sm mt-6">
+      <div class="card-body">
+        <h2 class="card-title">Mes tâches à venir</h2>
+        <div class="overflow-x-auto">
+          <table class="table w-full">
+            <thead>
+              <tr>
+                <th>Titre</th>
+                <th>Date d'échéance</th>
+                <th>Statut</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% if tasks %}
+                {% for task in tasks %}
+                  {% if task.dueDate|date('Y-m-d') >= "now"|date('Y-m-d') %}
+                    <tr>
+                      <td>{{ task.title }}</td>
+                      <td>{{ task.dueDate|date("d/m/Y") }}</td>
+                      <td>
+                        <span class="badge 
+                          {% if task.status == 'pending' %}badge-warning{% endif %}
+                          {% if task.status == 'in-progress' %}badge-info{% endif %}
+                          {% if task.status == 'completed' %}badge-success{% endif %}
+                          {% if task.status == 'cancelled' %}badge-error{% endif %}
+                        ">
+                          {{ task.status == 'pending' ? 'À faire' : 
+                             task.status == 'in-progress' ? 'En cours' : 
+                             task.status == 'completed' ? 'Terminée' : 
+                             'Annulée' 
+                          }}
+                        </span>
+                      </td>
+                      <td>
+                        <label for="task-modal-{{ task.id }}" class="btn btn-sm btn-outline">Détails</label>
+                      </td>
+                    </tr>
+                  {% endif %}
+                {% endfor %}
+              {% else %}
+                <tr>
+                  <td colspan="4" class="text-center">Aucune tâche à venir</td>
+                </tr>
+              {% endif %}
+            </tbody>
+          </table>
+        </div>
+        <div class="card-actions justify-end mt-4">
+          <label for="add-task-modal" class="btn btn-primary">Ajouter une tâche</label>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Tasks Section -->
+  <div id="tasks-tab" class="hidden flex-1">
+    <div class="card bg-base-200 shadow-sm">
+      <div class="card-body">
+        <div class="flex flex-wrap justify-between items-center mb-4">
+          <h2 class="text-2xl font-bold">Calendrier des tâches</h2>
+          <div class="flex gap-2">
+            <div class="dropdown dropdown-end">
+              <label tabindex="0" class="btn btn-sm">Filtrer par statut</label>
+              <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52">
+                <li><a onclick="filterTasks('all')">Toutes les tâches</a></li>
+                <li><a onclick="filterTasks('pending')">À faire</a></li>
+                <li><a onclick="filterTasks('in-progress')">En cours</a></li>
+                <li><a onclick="filterTasks('completed')">Terminées</a></li>
+                <li><a onclick="filterTasks('cancelled')">Annulées</a></li>
+              </ul>
+            </div>
+            <label for="add-task-modal" class="btn btn-primary btn-sm">Nouvelle tâche</label>
+          </div>
+        </div>
+        <div id="task-calendar" class="shadow-lg bg-white rounded-lg overflow-hidden"></div>
+      </div>
+    </div>
+    
+    <!-- Liste des tâches -->
+    <div class="card bg-base-200 shadow-sm mt-6">
+      <div class="card-body">
+        <h2 class="text-xl font-bold mb-2">Liste des tâches</h2>
+        <div class="overflow-x-auto">
+          <table class="table w-full">
+            <thead>
+              <tr>
+                <th>Titre</th>
+                <th>Description</th>
+                <th>Date d'échéance</th>
+                <th>Statut</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% if tasks %}
+                {% for task in tasks %}
+                  <tr>
+                    <td>{{ task.title }}</td>
+                    <td>{{ task.description|length > 50 ? task.description|slice(0, 50) ~ '...' : task.description }}</td>
+                    <td>{{ task.dueDate|date("d/m/Y") }}</td>
+                    <td>
+                      <span class="badge 
+                        {% if task.status == 'pending' %}badge-warning{% endif %}
+                        {% if task.status == 'in-progress' %}badge-info{% endif %}
+                        {% if task.status == 'completed' %}badge-success{% endif %}
+                        {% if task.status == 'cancelled' %}badge-error{% endif %}
+                      ">
+                        {{ task.status == 'pending' ? 'À faire' : 
+                           task.status == 'in-progress' ? 'En cours' : 
+                           task.status == 'completed' ? 'Terminée' : 
+                           'Annulée' 
+                        }}
+                      </span>
+                    </td>
+                    <td class="flex gap-2">
+                      <label for="task-modal-{{ task.id }}" class="btn btn-xs btn-outline">Détails</label>
+                      <label for="edit-task-modal-{{ task.id }}" class="btn btn-xs btn-outline">Modifier</label>
+                    </td>
+                  </tr>
+                {% endfor %}
+              {% else %}
+                <tr>
+                  <td colspan="5" class="text-center">Aucune tâche trouvée</td>
+                </tr>
+              {% endif %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Computer Section -->
+  <div id="computer-tab" class="hidden flex-1">
+    {% if employe.computer %}
+      <div class="card bg-base-200 shadow-sm">
+        <div class="card-body">
+          <h2 class="text-2xl font-bold mb-4">Détails de mon ordinateur</h2>
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div>
+              <table class="table w-full">
+                <tbody>
+                  <tr>
+                    <td class="font-bold">Adresse MAC</td>
+                    <td>{{ employe.computer.macAddress }}</td>
+                  </tr>
+                  <tr>
+                    <td class="font-bold">Adresse physique</td>
+                    <td>{{ employe.computer.adress ? employe.computer.adress : "Non renseignée" }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            
+            {% if employe.computer.latitude and employe.computer.longitude %}
+              <div id="computer-map" class="h-[300px] rounded-lg shadow-sm"></div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    {% else %}
+      <div class="alert alert-warning">
+        <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+        <div>
+          <h3 class="font-bold">Aucun ordinateur assigné</h3>
+          <div class="text-xs">Veuillez contacter votre administrateur RH pour obtenir un ordinateur.</div>
+        </div>
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Add Task Modal -->
+<input type="checkbox" id="add-task-modal" class="modal-toggle" />
+<div class="modal">
+  <div class="modal-box">
+    <h3 class="font-bold text-lg">Ajouter une tâche</h3>
+    <form action="/employee/task/create" method="POST" class="py-4">
+      <div class="form-control">
+        <label for="add-title" class="label">Titre</label>
+        <input type="text" name="title" id="add-title" class="input input-bordered" required />
+      </div>
+      <div class="form-control">
+        <label for="add-description" class="label">Description</label>
+        <textarea name="description" id="add-description" class="textarea textarea-bordered h-24" required></textarea>
+      </div>
+      <div class="form-control">
+        <label for="add-dueDate" class="label">Date d'échéance</label>
+        <input type="date" name="dueDate" id="add-dueDate" class="input input-bordered" required />
+      </div>
+      <div class="form-control">
+        <label for="add-status" class="label">Statut</label>
+        <select name="status" id="add-status" class="select select-bordered" required>
+          <option value="pending">À faire</option>
+          <option value="in-progress">En cours</option>
+          <option value="completed">Terminée</option>
+          <option value="cancelled">Annulée</option>
+        </select>
+      </div>
+      <input type="hidden" name="employeId" value="{{ employe.id }}" />
+      <div class="modal-action">
+        <button type="submit" class="btn btn-primary">Enregistrer</button>
+        <label for="add-task-modal" class="btn">Annuler</label>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Task Detail Modals -->
+{% if tasks %}
+  {% for task in tasks %}
+  <input type="checkbox" id="task-modal-{{ task.id }}" class="modal-toggle" />
+  <div class="modal">
+    <div class="modal-box">
+      <h3 class="font-bold text-lg">{{ task.title }}</h3>
+      <div class="py-4">
+        <p class="whitespace-pre-wrap">{{ task.description }}</p>
+        <div class="mt-4">
+          <p><strong>Date d'échéance:</strong> {{ task.dueDate|date("d/m/Y") }}</p>
+          <p><strong>Statut:</strong> 
+            <span class="badge 
+              {% if task.status == 'pending' %}badge-warning{% endif %}
+              {% if task.status == 'in-progress' %}badge-info{% endif %}
+              {% if task.status == 'completed' %}badge-success{% endif %}
+              {% if task.status == 'cancelled' %}badge-error{% endif %}
+            ">
+              {{ task.status == 'pending' ? 'À faire' : 
+                 task.status == 'in-progress' ? 'En cours' : 
+                 task.status == 'completed' ? 'Terminée' : 
+                 'Annulée' 
+              }}
+            </span>
+          </p>
+        </div>
+      </div>
+      <div class="modal-action">
+        <form action="/employee/task/update-status/{{ task.id }}" method="POST" class="flex gap-2 flex-wrap">
+          {% if task.status != 'pending' %}
+            <button type="submit" name="status" value="pending" class="btn btn-xs btn-warning">Marquer comme à faire</button>
+          {% endif %}
+          {% if task.status != 'in-progress' %}
+            <button type="submit" name="status" value="in-progress" class="btn btn-xs btn-info">Marquer comme en cours</button>
+          {% endif %}
+          {% if task.status != 'completed' %}
+            <button type="submit" name="status" value="completed" class="btn btn-xs btn-success">Marquer comme terminée</button>
+          {% endif %}
+          {% if task.status != 'cancelled' %}
+            <button type="submit" name="status" value="cancelled" class="btn btn-xs btn-error">Annuler la tâche</button>
+          {% endif %}
+        </form>
+        <label for="task-modal-{{ task.id }}" class="btn">Fermer</label>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+{% endif %}
+
+<!-- Edit Task Modals -->
+{% if tasks %}
+  {% for task in tasks %}
+  <input type="checkbox" id="edit-task-modal-{{ task.id }}" class="modal-toggle" />
+  <div class="modal">
+    <div class="modal-box">
+      <h3 class="font-bold text-lg">Modifier la tâche</h3>
+      <form action="/employee/task/update/{{ task.id }}" method="POST" class="py-4">
+        <div class="form-control">
+          <label for="edit-title-{{ task.id }}" class="label">Titre</label>
+          <input type="text" name="title" id="edit-title-{{ task.id }}" class="input input-bordered" required value="{{ task.title }}" />
+        </div>
+        <div class="form-control">
+          <label for="edit-description-{{ task.id }}" class="label">Description</label>
+          <textarea name="description" id="edit-description-{{ task.id }}" class="textarea textarea-bordered h-24" required>{{ task.description }}</textarea>
+        </div>
+        <div class="form-control">
+          <label for="edit-dueDate-{{ task.id }}" class="label">Date d'échéance</label>
+          <input type="date" name="dueDate" id="edit-dueDate-{{ task.id }}" class="input input-bordered" required value="{{ task.dueDate|date('Y-m-d') }}" />
+        </div>
+        <div class="form-control">
+          <label for="edit-status-{{ task.id }}" class="label">Statut</label>
+          <select name="status" id="edit-status-{{ task.id }}" class="select select-bordered" required>
+            <option value="pending" {% if task.status == 'pending' %}selected{% endif %}>À faire</option>
+            <option value="in-progress" {% if task.status == 'in-progress' %}selected{% endif %}>En cours</option>
+            <option value="completed" {% if task.status == 'completed' %}selected{% endif %}>Terminée</option>
+            <option value="cancelled" {% if task.status == 'cancelled' %}selected{% endif %}>Annulée</option>
+          </select>
+        </div>
+        <div class="modal-action">
+          <button type="submit" class="btn btn-primary">Mettre à jour</button>
+          <label for="edit-task-modal-{{ task.id }}" class="btn">Annuler</label>
+        </div>
+      </form>
+    </div>
+  </div>
+  {% endfor %}
+{% endif %}
+
+<script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.17/index.global.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@fullcalendar/daygrid@6.1.17/index.global.min.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Gestion des onglets
+    function switchTab(tab) {
+      document.getElementById('dashboard-tab').classList.add('hidden');
+      document.getElementById('tasks-tab').classList.add('hidden');
+      document.getElementById('computer-tab').classList.add('hidden');
+      document.getElementById(tab + '-tab').classList.remove('hidden');
+      
+      // Mise à jour de l'onglet actif
+      const tabs = document.querySelectorAll('.tab');
+      tabs.forEach(t => t.classList.remove('tab-active'));
+      if (tab === 'dashboard') {
+        tabs[0].classList.add('tab-active');
+      } else if (tab === 'tasks') {
+        tabs[1].classList.add('tab-active');
+        initTaskCalendar();
+      } else if (tab === 'computer') {
+        tabs[2].classList.add('tab-active');
+        initComputerMap();
+      }
+    }
+    
+    // Exposer switchTab à l'échelle globale
+    window.switchTab = switchTab;
+    
+    // Calendrier des tâches
+    let taskCalendar = null;
+    let currentFilter = 'all';
+    
+    // Fonction d'initialisation du calendrier
+    function initTaskCalendar() {
+      const calendarEl = document.getElementById('task-calendar');
+      
+      if (!calendarEl || calendarEl.classList.contains('fc')) {
+        return;
+      }
+      
+      // Création des événements
+      const events = [];
+      {% if tasks %}
+        {% for task in tasks %}
+          events.push({
+            id: '{{ task.id }}',
+            title: '{{ task.title }}',
+            start: '{{ task.dueDate|date("Y-m-d") }}',
+            allDay: true,
+            className: 'task-{{ task.status }}',
+            extendedProps: {
+              description: '{{ task.description|replace({"'": "\\'"}) }}',
+              status: '{{ task.status }}',
+              taskId: {{ task.id }}
+            }
+          });
+        {% endfor %}
+      {% endif %}
+      
+      taskCalendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'dayGridMonth',
+        events: events,
+        locale: 'fr',
+        headerToolbar: {
+          left: 'prev,next today',
+          center: 'title',
+          right: 'dayGridMonth,listWeek'
+        },
+        eventClick: function(info) {
+          document.getElementById(`task-modal-${info.event.extendedProps.taskId}`).checked = true;
+        }
+      });
+      
+      taskCalendar.render();
+    }
+    
+    // Fonction de filtrage des tâches
+    window.filterTasks = function(status) {
+      if (!taskCalendar) return;
+      
+      currentFilter = status;
+      taskCalendar.getEvents().forEach(event => {
+        if (status === 'all' || event.extendedProps.status === status) {
+          event.setProp('display', 'auto');
+        } else {
+          event.setProp('display', 'none');
+        }
+      });
+    };
+    
+    // Carte pour l'ordinateur
+    function initComputerMap() {
+      {% if employe.computer and employe.computer.latitude and employe.computer.longitude %}
+        const mapElement = document.getElementById('computer-map');
+        if (!mapElement || mapElement.hasChildNodes()) return;
+        
+        try {
+          const map = new maplibregl.Map({
+            container: 'computer-map',
+            style: 'https://api.maptiler.com/maps/hybrid/style.json?key=yhVb4pKbizkKPSbF1Ohr',
+            center: [{{ employe.computer.longitude }}, {{ employe.computer.latitude }}],
+            zoom: 15,
+            pitch: 0,
+            antialias: true
+          });
+          
+          map.addControl(new maplibregl.NavigationControl());
+          
+          // Ajouter un marqueur
+          const el = document.createElement('div');
+          el.className = 'marker';
+          
+          // Ajouter un popup avec les informations de l'ordinateur
+          const popup = new maplibregl.Popup({ offset: 25 })
+            .setHTML(`
+              <h3 class="font-bold">Mon ordinateur</h3>
+              <p><strong>MAC:</strong> {{ employe.computer.macAddress }}</p>
+              {% if employe.computer.adress %}
+                <p><strong>Adresse:</strong> {{ employe.computer.adress }}</p>
+              {% endif %}
+              <p><strong>Coordonnées:</strong> {{ employe.computer.latitude }}, {{ employe.computer.longitude }}</p>
+            `);
+          
+          new maplibregl.Marker(el)
+            .setLngLat([{{ employe.computer.longitude }}, {{ employe.computer.latitude }}])
+            .setPopup(popup)
+            .addTo(map);
+        } catch (error) {
+          console.error("Erreur lors de l'initialisation de la carte:", error);
+          mapElement.innerHTML = '<div class="alert alert-error">Impossible de charger la carte</div>';
+        }
+      {% endif %}
+    }
+  });
+</script>
+{% endblock %}

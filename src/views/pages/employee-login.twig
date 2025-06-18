@@ -4,14 +4,13 @@
 <div class="flex justify-center items-center h-full w-full p-4">
   <form method="POST" class="card bg-base-200 shadow-sm max-w-md mx-auto w-full">
     <div class="card-body">
-      <h2 class="card-title text-center justify-center mb-6">Connexion RH</h2>
+      <h2 class="card-title text-center justify-center mb-6">Connexion Employé</h2>
       
-      <!-- Formulaire existant -->
       <div class="form-control w-full">
-        <label for="siret" class="label">
-          <span class="label-text font-medium">SIRET</span>
+        <label for="mail" class="label">
+          <span class="label-text font-medium">Email</span>
         </label>
-        <input type="text" id="siret" name="siret" class="input input-bordered w-full" required placeholder="14 chiffres" />
+        <input type="email" id="mail" name="mail" class="input input-bordered w-full" required placeholder="Votre adresse email" />
       </div>
       
       <div class="form-control w-full mt-2">
@@ -24,21 +23,23 @@
         </div>
       </div>
       
+      {% if error %}
+        <div class="alert alert-error mt-4">
+          <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+          <span>{{ error.message }}</span>
+        </div>
+      {% endif %}
+      
       <div class="form-control mt-6">
         <button class="btn btn-primary w-full">Se connecter</button>
       </div>
       
-      <!-- Liens existants et nouveaux -->
+      <!-- Lien vers la connexion RH -->
       <div class="divider my-4">ou</div>
       
       <div class="text-center">
-        <span class="text-sm">Vous êtes un employé ?</span>
-        <a href="/employee/login" class="link link-hover text-sm ml-1">Connexion employé</a>
-      </div>
-      
-      <div class="text-center mt-2">
-        <span class="text-sm">Pas encore inscrit ?</span>
-        <a href="/register" class="link link-hover text-sm ml-1">Créer un compte</a>
+        <span class="text-sm">Vous êtes un responsable RH ?</span>
+        <a href="/login" class="link link-hover text-sm ml-1">Connexion RH</a>
       </div>
     </div>
   </form>

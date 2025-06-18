@@ -31,6 +31,39 @@
   .geocoding-error {
     color: #ef4444;
   }
+  
+  #calendar {
+    height: 600px;
+    width: 100%;
+    background-color: white;
+  }
+  
+  /* Styles pour les événements du calendrier */
+  .fc-event {
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  
+  .fc-event:hover {
+    transform: scale(1.02);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  }
+  
+  /* Amélioration des en-têtes */
+  .fc-header-toolbar {
+    margin-bottom: 1.5em !important;
+  }
+  
+  /* Styles pour les boutons */
+  .fc-button {
+    background-color: #1d4ed8 !important;
+    border-color: #1d4ed8 !important;
+  }
+  
+  .fc-button-active {
+    background-color: #1e40af !important;
+    border-color: #1e40af !important;
+  }
 </style>
 {% endblock %}
 
@@ -38,15 +71,18 @@
 <div class="min-h-screen flex flex-col">
   <!-- Tabs -->
   <div class="tabs tabs-boxed mb-6">
-    <button class="tab tab-active" onclick="switchTab('employees')">Employés</button>
+    <button class="tab tab-active" onclick="switchTab('employes')">Employés</button>
     <button class="tab" onclick="switchTab('computers')">Ordinateurs</button>
   </div>
 
   <!-- Employees Section -->
-  <div id="employees-tab" class="flex-1">
+  <div id="employes-tab" class="flex-1">
     <div class="flex justify-between items-center mb-4">
       <h2 class="text-2xl font-bold">Liste des employés</h2>
-      <label for="add-employee-modal" class="btn btn-primary">Ajouter un employé</label>
+      <div class="flex gap-2">
+        <label for="add-employee-modal" class="btn btn-primary">Ajouter un employé</label>
+        <label for="add-task-modal" class="btn btn-secondary">Ajouter une tâche</label>
+      </div>
     </div>
     
     <div class="overflow-x-auto">
@@ -83,6 +119,12 @@
           {% endif %}
         </tbody>
       </table>
+    </div>
+    
+    <!-- Calendrier des employés -->
+    <div class="mt-8 bg-base-200 p-4 rounded-box">
+      <h3 class="text-xl font-bold mb-2">Calendrier des employés</h3>
+      <div id="calendar" class="shadow-lg bg-white rounded-lg overflow-hidden" style="height: 600px; min-height: 600px;"></div>
     </div>
   </div>
 
@@ -312,6 +354,136 @@
   {% endfor %}
 {% endif %}
 
+<!-- Modal d'ajout de tâche -->
+<input type="checkbox" id="add-task-modal" class="modal-toggle" />
+<div class="modal">
+  <div class="modal-box">
+    <h3 class="font-bold text-lg">Ajouter une tâche</h3>
+    <form action="/task/create" method="POST" class="py-4">
+      <div class="form-control">
+        <label for="add-task-title" class="label">Titre</label>
+        <input type="text" name="title" id="add-task-title" class="input input-bordered" required />
+      </div>
+      <div class="form-control">
+        <label for="add-task-description" class="label">Description</label>
+        <textarea name="description" id="add-task-description" class="textarea textarea-bordered h-24" required></textarea>
+      </div>
+      <div class="form-control">
+        <label for="add-task-date" class="label">Date d'échéance</label>
+        <input type="date" name="dueDate" id="add-task-date" class="input input-bordered" required />
+      </div>
+      <div class="form-control">
+        <label for="add-task-status" class="label">Statut</label>
+        <select name="status" id="add-task-status" class="select select-bordered" required>
+          <option value="pending">À faire</option>
+          <option value="in-progress">En cours</option>
+          <option value="completed">Terminée</option>
+          <option value="cancelled">Annulée</option>
+        </select>
+      </div>
+      <div class="form-control">
+        <label for="add-task-assignment" class="label">Assignation</label>
+        <select name="assignmentType" id="add-task-assignment" class="select select-bordered" required onchange="toggleAssignmentOptions()">
+          <option value="">Sélectionner un type d'assignation</option>
+          <option value="individual">Employé individuel</option>
+          <option value="group">Groupe d'employés</option>
+          <option value="all">Tous les employés</option>
+        </select>
+      </div>
+      
+      <!-- Sélection d'employé individuel -->
+      <div class="form-control hidden" id="individual-selection">
+        <label for="add-task-employe" class="label">Employé</label>
+        <select name="employeId" id="add-task-employe" class="select select-bordered">
+          <option value="">Sélectionner un employé</option>
+          {% if employes %}
+            {% for employe in employes %}
+              <option value="{{ employe.id }}">{{ employe.firstName }} {{ employe.lastname }}</option>
+            {% endfor %}
+          {% endif %}
+        </select>
+      </div>
+      
+      <!-- Sélection de groupe d'employés -->
+      <div class="form-control hidden" id="group-selection">
+        <label class="label">Employés sélectionnés</label>
+        <div class="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto border rounded p-2">
+          {% if employes %}
+            {% for employe in employes %}
+              <label class="cursor-pointer label">
+                <input type="checkbox" name="employeIds[]" value="{{ employe.id }}" class="checkbox checkbox-sm" />
+                <span class="label-text ml-2">{{ employe.firstName }} {{ employe.lastname }}</span>
+              </label>
+            {% endfor %}
+          {% endif %}
+        </div>
+      </div>
+      
+      <div class="modal-action">
+        <button type="submit" class="btn btn-primary">Créer la tâche</button>
+        <label for="add-task-modal" class="btn">Annuler</label>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modales de détail des tâches -->
+{% if tasks %}
+  {% for task in tasks %}
+  <input type="checkbox" id="task-detail-modal-{{ task.id }}" class="modal-toggle" />
+  <div class="modal">
+    <div class="modal-box">
+      <h3 class="font-bold text-lg">{{ task.title }}</h3>
+      <div class="py-4">
+        <p class="whitespace-pre-wrap mb-4">{{ task.description }}</p>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <p><strong>Assigné à:</strong> {{ task.employe.firstName }} {{ task.employe.lastname }}</p>
+            <p><strong>Date d'échéance:</strong> {{ task.dueDate|date("d/m/Y") }}</p>
+          </div>
+          <div>
+            <p><strong>Statut:</strong> 
+              <span class="badge 
+                {% if task.status == 'pending' %}badge-warning{% endif %}
+                {% if task.status == 'in-progress' %}badge-info{% endif %}
+                {% if task.status == 'completed' %}badge-success{% endif %}
+                {% if task.status == 'cancelled' %}badge-error{% endif %}
+              ">
+                {{ task.status == 'pending' ? 'À faire' : 
+                   task.status == 'in-progress' ? 'En cours' : 
+                   task.status == 'completed' ? 'Terminée' : 
+                   'Annulée' 
+                }}
+              </span>
+            </p>
+            <p><strong>Créée le:</strong> {{ task.createdAt|date("d/m/Y") }}</p>
+          </div>
+        </div>
+      </div>
+      <div class="modal-action">
+        <form action="/task/update-status/{{ task.id }}" method="POST" class="flex gap-2 flex-wrap">
+          {% if task.status != 'pending' %}
+            <button type="submit" name="status" value="pending" class="btn btn-xs btn-warning">À faire</button>
+          {% endif %}
+          {% if task.status != 'in-progress' %}
+            <button type="submit" name="status" value="in-progress" class="btn btn-xs btn-info">En cours</button>
+          {% endif %}
+          {% if task.status != 'completed' %}
+            <button type="submit" name="status" value="completed" class="btn btn-xs btn-success">Terminée</button>
+          {% endif %}
+          {% if task.status != 'cancelled' %}
+            <button type="submit" name="status" value="cancelled" class="btn btn-xs btn-error">Annuler</button>
+          {% endif %}
+        </form>
+        <label for="edit-task-modal-{{ task.id }}" class="btn btn-outline">Modifier</label>
+        <button class="btn btn-error" onclick="confirmDelete('task', {{ task.id }})">Supprimer</button>
+        <label for="task-detail-modal-{{ task.id }}" class="btn">Fermer</label>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+{% endif %}
+
 <script>
   // Fonction de géocodage
   async function geocodeAddress(address) {
@@ -382,14 +554,14 @@
   }
 
   function switchTab(tab) {
-    document.getElementById('employees-tab').classList.add('hidden');
+    document.getElementById('employes-tab').classList.add('hidden');
     document.getElementById('computers-tab').classList.add('hidden');
     document.getElementById(tab + '-tab').classList.remove('hidden');
     
     // Update active tab
     const tabs = document.querySelectorAll('.tab');
     tabs.forEach(t => t.classList.remove('tab-active'));
-    if (tab === 'employees') {
+    if (tab === 'employes') {  // Utilisez 'employes' au lieu de 'employees'
       tabs[0].classList.add('tab-active');
     } else {
       tabs[1].classList.add('tab-active');
@@ -409,14 +581,45 @@
   });
   
   function confirmDelete(type, id) {
-    if (confirm(`Êtes-vous sûr de vouloir supprimer cet élément ?`)) {
-      window.location.href = `/${type}/delete/${id}`;
+    let message = '';
+    let url = '';
+    
+    if (type === 'employe') {
+      message = 'Êtes-vous sûr de vouloir supprimer cet employé ?';
+      url = `/employe/delete/${id}`;
+    } else if (type === 'computer') {
+      message = 'Êtes-vous sûr de vouloir supprimer cet ordinateur ?';
+      url = `/computer/delete/${id}`;
+    } else if (type === 'task') {
+      message = 'Êtes-vous sûr de vouloir supprimer cette tâche ?';
+      url = `/task/delete/${id}`;
+    }
+    
+    if (confirm(message)) {
+      window.location.href = url;
     }
   }
   
   function unassignComputer(id) {
     if (confirm(`Êtes-vous sûr de vouloir désassigner cet ordinateur ?`)) {
       window.location.href = `/computer/unassign/${id}`;
+    }
+  }
+  
+  function toggleAssignmentOptions() {
+    const assignmentType = document.getElementById('add-task-assignment').value;
+    const individualSelection = document.getElementById('individual-selection');
+    const groupSelection = document.getElementById('group-selection');
+    
+    // Masquer toutes les options
+    individualSelection.classList.add('hidden');
+    groupSelection.classList.add('hidden');
+    
+    // Afficher l'option appropriée
+    if (assignmentType === 'individual') {
+      individualSelection.classList.remove('hidden');
+    } else if (assignmentType === 'group') {
+      groupSelection.classList.remove('hidden');
     }
   }
 </script>
@@ -586,6 +789,65 @@
     
     // Exposer initMap globalement pour le débogage
     window.initMapManually = initMap;
+  });
+</script>
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.17/index.global.min.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    function initCalendar() {
+      const calendarEl = document.getElementById('calendar');
+      if (!calendarEl) return;
+      
+      const events = [
+        // Anniversaires
+        {% if employes %}
+          {% for employe in employes %}
+            {% if employe.birthDate %}
+              {
+                title: '🎂 {{ employe.firstName }} {{ employe.lastname }}',
+                start: '2025-{{ employe.birthDate|date("m-d") }}',
+                allDay: true,
+                backgroundColor: '#3788d8'
+              },
+            {% endif %}
+          {% endfor %}
+        {% endif %}
+        
+        // Tâches
+        {% if tasks %}
+          {% for task in tasks %}
+            {
+              title: '📋 {{ task.title }}',
+              start: '{{ task.dueDate|date("Y-m-d") }}',
+              allDay: true,
+              backgroundColor: {% if task.status == 'pending' %}'#f59e0b'{% elseif task.status == 'in-progress' %}'#3b82f6'{% elseif task.status == 'completed' %}'#10b981'{% else %}'#ef4444'{% endif %}
+            }{% if not loop.last %},{% endif %}
+          {% endfor %}
+        {% endif %}
+      ];
+      
+      const calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'dayGridMonth',
+        locale: 'fr',
+        events: events
+      });
+      
+      calendar.render();
+    }
+    
+    // Initialiser si on est sur l'onglet employés
+    setTimeout(initCalendar, 500);
+    
+    // Reinitialiser lors du changement d'onglet
+    if (window.switchTab) {
+      const originalSwitchTab = window.switchTab;
+      window.switchTab = function(tab) {
+        originalSwitchTab(tab);
+        if (tab === 'employes') {
+          setTimeout(initCalendar, 500);
+        }
+      };
+    }
   });
 </script>
 {% endblock %}

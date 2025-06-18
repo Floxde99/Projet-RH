@@ -13,3 +13,7 @@ datasource db {
   provider = "mysql"
   url      = env("DATABASE_URL")
 }
+/// <reference path="./models/BusinessOwner.prisma" />
+/// <reference path="./models/Computer.prisma" />
+/// <reference path="./models/Employee.prisma" />
+/// <reference path="./models/Task.prisma" />

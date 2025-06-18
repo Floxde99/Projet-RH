@@ -11,4 +11,5 @@ model Employe {
     businessOwnerId Int
     businessOwner BusinessOwner @relation(fields: [businessOwnerId], references: [id])
     computer     Computer?
+    tasks         Task[]
 }

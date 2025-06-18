@@ -5,6 +5,9 @@ const mainRoutes = require('./src/Routes/mainRoutes');
 const employeRoutes = require('./src/Routes/employeRoutes');
 const computerRoutes = require('./src/Routes/computerRoutes');
 const chatbotRoutes = require('./src/Routes/chatbotRoutes'); // Nouvelle ligne
+const employeeAuthRoutes = require('./src/Routes/employeeAuthRoutes');
+const employeeDashboardRoutes = require('./src/Routes/employeeDashboardRoutes');
+const taskRoutes = require('./src/Routes/taskRoutes');
 const app = express();
 require('dotenv').config();
 
@@ -20,7 +23,10 @@ app.use(RHRoutes);
 app.use(mainRoutes);
 app.use(employeRoutes);
 app.use(computerRoutes);
-app.use(chatbotRoutes); // Nouvelle ligne
+app.use(chatbotRoutes);
+app.use(employeeAuthRoutes);
+app.use(employeeDashboardRoutes);
+app.use(taskRoutes);
 
 app.listen(3000, () => {
   console.log('le serveur est lancé sur le port 3000');
