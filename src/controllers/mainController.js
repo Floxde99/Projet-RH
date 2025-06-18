@@ -34,6 +34,8 @@ exports.getMain = async (req, res) => {
         
         // Rendre la vue avec toutes les données
         res.render("pages/main.twig", {
+            user: req.session.user,      // Pour les RH
+            employe: req.session.employe, // Pour les employés
             employes: employes,
             computers: computers,
             tasks: tasks,

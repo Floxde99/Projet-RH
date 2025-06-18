@@ -281,6 +281,7 @@
                     <td class="flex gap-2">
                       <label for="task-modal-{{ task.id }}" class="btn btn-xs btn-outline">Détails</label>
                       <label for="edit-task-modal-{{ task.id }}" class="btn btn-xs btn-outline">Modifier</label>
+                      <button class="btn btn-error" onclick="showDeleteEmployeeTaskModal({{ task.id }})">Supprimer</button>
                     </td>
                   </tr>
                 {% endfor %}
@@ -460,11 +461,51 @@
   {% endfor %}
 {% endif %}
 
+<!-- Modales de confirmation pour le tableau de bord employé -->
+<input type="checkbox" id="delete-employee-task-modal" class="modal-toggle" />
+<div class="modal">
+  <div class="modal-box">
+    <h3 class="font-bold text-lg text-error">🗑️ Supprimer la tâche</h3>
+    <p class="py-4">Êtes-vous sûr de vouloir supprimer votre tâche ? Cette action est irréversible.</p>
+    <div class="modal-action">
+      <button id="delete-employee-task-confirm" class="btn btn-error">Supprimer</button>
+      <label for="delete-employee-task-modal" class="btn">Annuler</label>
+    </div>
+  </div>
+</div>
+
 <script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.17/index.global.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/daygrid@6.1.17/index.global.min.js"></script>
 <script>
+  let employeePendingAction = null;
+  
+  function showDeleteEmployeeTaskModal(id) {
+    employeePendingAction = { type: 'delete-task', id: id };
+    document.getElementById('delete-employee-task-modal').checked = true;
+  }
+  
   document.addEventListener('DOMContentLoaded', function() {
+    // Confirmation suppression tâche employé
+    const deleteBtn = document.getElementById('delete-employee-task-confirm');
+    if (deleteBtn) {
+      deleteBtn.addEventListener('click', function() {
+        if (employeePendingAction && employeePendingAction.type === 'delete-task') {
+          window.location.href = `/employee/task/delete/${employeePendingAction.id}`;
+        }
+      });
+    }
+    
+    // Réinitialiser l'action en attente
+    const modal = document.getElementById('delete-employee-task-modal');
+    if (modal) {
+      modal.addEventListener('change', function() {
+        if (!this.checked) {
+          employeePendingAction = null;
+        }
+      });
+    }
+    
     // Gestion des onglets
     function switchTab(tab) {
       document.getElementById('dashboard-tab').classList.add('hidden');

@@ -64,6 +64,35 @@
     background-color: #1e40af !important;
     border-color: #1e40af !important;
   }
+
+  /* Styles pour les modales de confirmation */
+  .modal-box h3.text-error {
+    color: #ef4444;
+  }
+
+  .modal-box h3.text-warning {
+    color: #f59e0b;
+  }
+
+  .modal-box .btn-error {
+    background-color: #ef4444;
+    border-color: #ef4444;
+  }
+
+  .modal-box .btn-error:hover {
+    background-color: #dc2626;
+    border-color: #dc2626;
+  }
+
+  .modal-box .btn-warning {
+    background-color: #f59e0b;
+    border-color: #f59e0b;
+  }
+
+  .modal-box .btn-warning:hover {
+    background-color: #d97706;
+    border-color: #d97706;
+  }
 </style>
 {% endblock %}
 
@@ -110,7 +139,7 @@
               <td>{{ employe.computer ? employe.computer.macAddress : "Non assigné" }}</td>
               <td class="flex gap-2">
                 <label for="edit-employee-modal-{{ employe.id }}" class="btn btn-sm btn-outline">Modifier</label>
-                <button class="btn btn-sm btn-error" onclick="confirmDelete('employee', {{ employe.id }})">Supprimer</button>
+                <button class="btn btn-sm btn-error" onclick="showDeleteEmployeeModal({{ employe.id }})">Supprimer</button>
               </td>
             </tr>
             {% endfor %}
@@ -155,14 +184,15 @@
                 {% if computer.employe %}
                   {{ computer.employe.firstName }} {{ computer.employe.lastname }}
                 {% else %}
+                  <span class="text-gray-500">Non assigné</span>
                   <label for="assign-computer-modal-{{ computer.id }}" class="btn btn-xs btn-outline">Assigner</label>
                 {% endif %}
               </td>
               <td class="flex gap-2">
                 <label for="edit-computer-modal-{{ computer.id }}" class="btn btn-sm btn-outline">Modifier</label>
-                <button class="btn btn-sm btn-error" onclick="confirmDelete('computer', {{ computer.id }})">Supprimer</button>
+                <button class="btn btn-sm btn-error" onclick="showDeleteComputerModal({{ computer.id }})">Supprimer</button>
                 {% if computer.employe %}
-                  <button class="btn btn-sm btn-warning" onclick="unassignComputer({{ computer.id }})">Désassigner</button>
+                  <button class="btn btn-sm btn-warning" onclick="showUnassignComputerModal({{ computer.id }})">Désassigner</button>
                 {% endif %}
               </td>
             </tr>
@@ -476,7 +506,7 @@
           {% endif %}
         </form>
         <label for="edit-task-modal-{{ task.id }}" class="btn btn-outline">Modifier</label>
-        <button class="btn btn-error" onclick="confirmDelete('task', {{ task.id }})">Supprimer</button>
+        <button class="btn btn-error" onclick="showDeleteTaskModal({{ task.id }})">Supprimer</button>
         <label for="task-detail-modal-{{ task.id }}" class="btn">Fermer</label>
       </div>
     </div>
@@ -527,7 +557,7 @@
         </div>
         <div class="modal-action">
           <button type="submit" class="btn btn-primary">Mettre à jour</button>
-          <button type="button" class="btn btn-error" onclick="confirmDelete('task', {{ task.id }})">Supprimer</button>
+          <button type="button" class="btn btn-error" onclick="showDeleteTaskModal({{ task.id }})">Supprimer</button>
           <label for="edit-task-modal-{{ task.id }}" class="btn">Annuler</label>
         </div>
       </form>
@@ -536,6 +566,144 @@
   {% endfor %}
 {% endif %}
 
+<!-- Modales de confirmation -->
+<!-- Modal de confirmation pour suppression d'employé -->
+<input type="checkbox" id="delete-employee-modal" class="modal-toggle" />
+<div class="modal">
+  <div class="modal-box">
+    <h3 class="font-bold text-lg text-error">🗑️ Supprimer l'employé</h3>
+    <p class="py-4">Êtes-vous sûr de vouloir supprimer cet employé ? Cette action est irréversible.</p>
+    <div class="modal-action">
+      <button id="delete-employee-confirm" class="btn btn-error">Supprimer</button>
+      <label for="delete-employee-modal" class="btn">Annuler</label>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de confirmation pour suppression d'ordinateur -->
+<input type="checkbox" id="delete-computer-modal" class="modal-toggle" />
+<div class="modal">
+  <div class="modal-box">
+    <h3 class="font-bold text-lg text-error">🗑️ Supprimer l'ordinateur</h3>
+    <p class="py-4">Êtes-vous sûr de vouloir supprimer cet ordinateur ? Cette action est irréversible.</p>
+    <div class="modal-action">
+      <button id="delete-computer-confirm" class="btn btn-error">Supprimer</button>
+      <label for="delete-computer-modal" class="btn">Annuler</label>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de confirmation pour suppression de tâche -->
+<input type="checkbox" id="delete-task-modal" class="modal-toggle" />
+<div class="modal">
+  <div class="modal-box">
+    <h3 class="font-bold text-lg text-error">🗑️ Supprimer la tâche</h3>
+    <p class="py-4">Êtes-vous sûr de vouloir supprimer cette tâche ? Cette action est irréversible.</p>
+    <div class="modal-action">
+      <button id="delete-task-confirm" class="btn btn-error">Supprimer</button>
+      <label for="delete-task-modal" class="btn">Annuler</label>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de confirmation pour désassigner un ordinateur -->
+<input type="checkbox" id="unassign-computer-modal" class="modal-toggle" />
+<div class="modal">
+  <div class="modal-box">
+    <h3 class="font-bold text-lg text-warning">🔄 Désassigner l'ordinateur</h3>
+    <p class="py-4">Êtes-vous sûr de vouloir désassigner cet ordinateur ?</p>
+    <div class="modal-action">
+      <button id="unassign-computer-confirm" class="btn btn-warning">Désassigner</button>
+      <label for="unassign-computer-modal" class="btn">Annuler</label>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Variables globales pour stocker les données de confirmation
+  let pendingAction = null;
+  
+  // Fonctions pour afficher les modales de confirmation
+  function showDeleteEmployeeModal(id) {
+    pendingAction = { type: 'delete-employee', id: id };
+    document.getElementById('delete-employee-modal').checked = true;
+  }
+  
+  function showDeleteComputerModal(id) {
+    pendingAction = { type: 'delete-computer', id: id };
+    document.getElementById('delete-computer-modal').checked = true;
+  }
+  
+  function showDeleteTaskModal(id) {
+    pendingAction = { type: 'delete-task', id: id };
+    document.getElementById('delete-task-modal').checked = true;
+  }
+  
+  function showUnassignComputerModal(id) {
+    pendingAction = { type: 'unassign-computer', id: id };
+    document.getElementById('unassign-computer-modal').checked = true;
+  }
+  
+  // Gestionnaires d'événements pour les boutons de confirmation
+  document.addEventListener('DOMContentLoaded', function() {
+    // Confirmation suppression employé
+    document.getElementById('delete-employee-confirm').addEventListener('click', function() {
+      if (pendingAction && pendingAction.type === 'delete-employee') {
+        window.location.href = `/employe/delete/${pendingAction.id}`;
+      }
+    });
+    
+    // Confirmation suppression ordinateur
+    document.getElementById('delete-computer-confirm').addEventListener('click', function() {
+      if (pendingAction && pendingAction.type === 'delete-computer') {
+        window.location.href = `/computer/delete/${pendingAction.id}`;
+      }
+    });
+    
+    // Confirmation suppression tâche
+    document.getElementById('delete-task-confirm').addEventListener('click', function() {
+      if (pendingAction && pendingAction.type === 'delete-task') {
+        window.location.href = `/task/delete/${pendingAction.id}`;
+      }
+    });
+    
+    // Confirmation désassignation ordinateur
+    document.getElementById('unassign-computer-confirm').addEventListener('click', function() {
+      if (pendingAction && pendingAction.type === 'unassign-computer') {
+        window.location.href = `/computer/unassign/${pendingAction.id}`;
+      }
+    });
+    
+    // Réinitialiser l'action en attente quand une modale se ferme
+    const modals = ['delete-employee-modal', 'delete-computer-modal', 'delete-task-modal', 'unassign-computer-modal'];
+    modals.forEach(modalId => {
+      document.getElementById(modalId).addEventListener('change', function() {
+        if (!this.checked) {
+          pendingAction = null;
+        }
+      });
+    });
+  });
+
+  function toggleAssignmentOptions() {
+    const assignmentType = document.getElementById('add-task-assignment').value;
+    const individualSelection = document.getElementById('individual-selection');
+    const groupSelection = document.getElementById('group-selection');
+    
+    // Masquer toutes les options
+    individualSelection.classList.add('hidden');
+    groupSelection.classList.add('hidden');
+    
+    // Afficher l'option appropriée
+    if (assignmentType === 'individual') {
+      individualSelection.classList.remove('hidden');
+    } else if (assignmentType === 'group') {
+      groupSelection.classList.remove('hidden');
+    }
+  }
+</script>
+
+<!-- Scripts pour gérer la géolocalisation et les fonctions -->
 <script>
   // Fonction de géocodage
   async function geocodeAddress(address) {
@@ -631,50 +799,8 @@
       switchTab('computers');
     }
   });
-  
-  function confirmDelete(type, id) {
-    let message = '';
-    let url = '';
-    
-    if (type === 'employe') {
-      message = 'Êtes-vous sûr de vouloir supprimer cet employé ?';
-      url = `/employe/delete/${id}`;
-    } else if (type === 'computer') {
-      message = 'Êtes-vous sûr de vouloir supprimer cet ordinateur ?';
-      url = `/computer/delete/${id}`;
-    } else if (type === 'task') {
-      message = 'Êtes-vous sûr de vouloir supprimer cette tâche ?';
-      url = `/task/delete/${id}`;
-    }
-    
-    if (confirm(message)) {
-      window.location.href = url;
-    }
-  }
-  
-  function unassignComputer(id) {
-    if (confirm(`Êtes-vous sûr de vouloir désassigner cet ordinateur ?`)) {
-      window.location.href = `/computer/unassign/${id}`;
-    }
-  }
-  
-  function toggleAssignmentOptions() {
-    const assignmentType = document.getElementById('add-task-assignment').value;
-    const individualSelection = document.getElementById('individual-selection');
-    const groupSelection = document.getElementById('group-selection');
-    
-    // Masquer toutes les options
-    individualSelection.classList.add('hidden');
-    groupSelection.classList.add('hidden');
-    
-    // Afficher l'option appropriée
-    if (assignmentType === 'individual') {
-      individualSelection.classList.remove('hidden');
-    } else if (assignmentType === 'group') {
-      groupSelection.classList.remove('hidden');
-    }
-  }
 </script>
+
 <script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
 <script>
   // Variable globale pour suivre l'initialisation de la carte
@@ -843,6 +969,7 @@
     window.initMapManually = initMap;
   });
 </script>
+
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.17/index.global.min.js"></script>
 <script>
   document.addEventListener('DOMContentLoaded', function() {
