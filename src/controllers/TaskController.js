@@ -92,3 +92,29 @@ exports.deleteTask = async (req, res) => {
         return res.redirect("/?error=Erreur lors de la suppression de la tâche");
     }
 };
+
+// Mettre à jour une tâche complète
+exports.updateTask = async (req, res) => {
+    try {
+        const taskId = parseInt(req.params.id);
+        const { title, description, dueDate, status, employeId } = req.body;
+        
+        await prisma.task.update({
+            where: {
+                id: taskId
+            },
+            data: {
+                title,
+                description,
+                dueDate: new Date(dueDate),
+                status,
+                employeId: parseInt(employeId)
+            }
+        });
+        
+        return res.redirect("/?success=Tâche mise à jour avec succès");
+    } catch (error) {
+        console.error("Erreur lors de la mise à jour de la tâche:", error);
+        return res.redirect("/?error=Erreur lors de la mise à jour de la tâche");
+    }
+};

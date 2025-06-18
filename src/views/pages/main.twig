@@ -484,6 +484,58 @@
   {% endfor %}
 {% endif %}
 
+<!-- Modales d'édition des tâches -->
+{% if tasks %}
+  {% for task in tasks %}
+  <input type="checkbox" id="edit-task-modal-{{ task.id }}" class="modal-toggle" />
+  <div class="modal">
+    <div class="modal-box">
+      <h3 class="font-bold text-lg">Modifier la tâche</h3>
+      <form action="/task/update/{{ task.id }}" method="POST" class="py-4">
+        <div class="form-control">
+          <label for="edit-task-title-{{ task.id }}" class="label">Titre</label>
+          <input type="text" name="title" id="edit-task-title-{{ task.id }}" class="input input-bordered" required value="{{ task.title }}" />
+        </div>
+        <div class="form-control">
+          <label for="edit-task-description-{{ task.id }}" class="label">Description</label>
+          <textarea name="description" id="edit-task-description-{{ task.id }}" class="textarea textarea-bordered h-24" required>{{ task.description }}</textarea>
+        </div>
+        <div class="form-control">
+          <label for="edit-task-date-{{ task.id }}" class="label">Date d'échéance</label>
+          <input type="date" name="dueDate" id="edit-task-date-{{ task.id }}" class="input input-bordered" required value="{{ task.dueDate|date('Y-m-d') }}" />
+        </div>
+        <div class="form-control">
+          <label for="edit-task-status-{{ task.id }}" class="label">Statut</label>
+          <select name="status" id="edit-task-status-{{ task.id }}" class="select select-bordered" required>
+            <option value="pending" {% if task.status == 'pending' %}selected{% endif %}>À faire</option>
+            <option value="in-progress" {% if task.status == 'in-progress' %}selected{% endif %}>En cours</option>
+            <option value="completed" {% if task.status == 'completed' %}selected{% endif %}>Terminée</option>
+            <option value="cancelled" {% if task.status == 'cancelled' %}selected{% endif %}>Annulée</option>
+          </select>
+        </div>
+        <div class="form-control">
+          <label for="edit-task-employe-{{ task.id }}" class="label">Employé assigné</label>
+          <select name="employeId" id="edit-task-employe-{{ task.id }}" class="select select-bordered" required>
+            {% if employes %}
+              {% for employe in employes %}
+                <option value="{{ employe.id }}" {% if employe.id == task.employeId %}selected{% endif %}>
+                  {{ employe.firstName }} {{ employe.lastname }}
+                </option>
+              {% endfor %}
+            {% endif %}
+          </select>
+        </div>
+        <div class="modal-action">
+          <button type="submit" class="btn btn-primary">Mettre à jour</button>
+          <button type="button" class="btn btn-error" onclick="confirmDelete('task', {{ task.id }})">Supprimer</button>
+          <label for="edit-task-modal-{{ task.id }}" class="btn">Annuler</label>
+        </div>
+      </form>
+    </div>
+  </div>
+  {% endfor %}
+{% endif %}
+
 <script>
   // Fonction de géocodage
   async function geocodeAddress(address) {
@@ -807,7 +859,11 @@
                 title: '🎂 {{ employe.firstName }} {{ employe.lastname }}',
                 start: '2025-{{ employe.birthDate|date("m-d") }}',
                 allDay: true,
-                backgroundColor: '#3788d8'
+                backgroundColor: '#3788d8',
+                extendedProps: {
+                  type: 'birthday',
+                  employeId: {{ employe.id }}
+                }
               },
             {% endif %}
           {% endfor %}
@@ -817,11 +873,17 @@
         {% if tasks %}
           {% for task in tasks %}
             {
-              title: '📋 {{ task.title }}',
+              title: '📋 {{ task.title }} ({{ task.employe.firstName }} {{ task.employe.lastname }})',
               start: '{{ task.dueDate|date("Y-m-d") }}',
               allDay: true,
-              backgroundColor: {% if task.status == 'pending' %}'#f59e0b'{% elseif task.status == 'in-progress' %}'#3b82f6'{% elseif task.status == 'completed' %}'#10b981'{% else %}'#ef4444'{% endif %}
-            }{% if not loop.last %},{% endif %}
+              backgroundColor: {% if task.status == 'pending' %}'#f59e0b'{% elseif task.status == 'in-progress' %}'#3b82f6'{% elseif task.status == 'completed' %}'#10b981'{% else %}'#ef4444'{% endif %},
+              extendedProps: {
+                type: 'task',
+                taskId: {{ task.id }},
+                employeId: {{ task.employeId }},
+                status: '{{ task.status }}'
+              }
+            }{{ not loop.last ? ',' : '' }}
           {% endfor %}
         {% endif %}
       ];
@@ -829,7 +891,33 @@
       const calendar = new FullCalendar.Calendar(calendarEl, {
         initialView: 'dayGridMonth',
         locale: 'fr',
-        events: events
+        events: events,
+        eventClick: function(info) {
+          if (info.event.extendedProps.type === 'birthday') {
+            // Ouvrir le modal d'édition d'employé pour les anniversaires
+            const employeId = info.event.extendedProps.employeId;
+            const modal = document.getElementById('edit-employee-modal-' + employeId);
+            if (modal) {
+              modal.checked = true;
+            }
+          } else if (info.event.extendedProps.type === 'task') {
+            // Ouvrir le modal d'édition de tâche pour les tâches
+            const taskId = info.event.extendedProps.taskId;
+            const modal = document.getElementById('edit-task-modal-' + taskId);
+            if (modal) {
+              modal.checked = true;
+            }
+          }
+        },
+        dateClick: function(info) {
+          // Ouvrir le modal d'ajout de tâche avec la date sélectionnée
+          const dateInput = document.getElementById('add-task-date');
+          const modal = document.getElementById('add-task-modal');
+          if (dateInput && modal) {
+            dateInput.value = info.dateStr;
+            modal.checked = true;
+          }
+        }
       });
       
       calendar.render();
