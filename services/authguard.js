@@ -5,7 +5,7 @@ const prisma = new PrismaClient();
 const authguard = async (req, res, next) => {
     try {
         if (req.session.user) {
-            // Correction: utiliser BusinessOwner au lieu de user
+           
             const userFound = await prisma.businessOwner.findUnique({
                 where: {
                     id: req.session.user.id
